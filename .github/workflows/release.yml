@@ -1,0 +1,55 @@
+name: GitHub Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Build release DLL
+        shell: pwsh
+        run: ./scripts/build.ps1 -NoDeploy
+
+      - name: Get build info
+        id: buildinfo
+        shell: pwsh
+        run: |
+          $short = git rev-parse --short HEAD
+          $dt    = (Get-Date -AsUTC).ToString("yyyy.MM.dd_HH.mm.ss")
+          $name  = "CustomEverything-Alpha-${dt}_${short}"
+          echo "short=$short" >> $env:GITHUB_OUTPUT
+          echo "name=$name" >> $env:GITHUB_OUTPUT
+
+      - name: Render release notes
+        id: notes
+        shell: pwsh
+        run: |
+          $changelog = Get-Content -Raw CHANGELOG.md
+          $body = @(
+            "Download CustomEverything from Thunderstore:"
+            "https://thunderstore.io/c/resonite/p/DesktopBuddy/CustomEverything/"
+            ""
+            $changelog
+          ) -join "`r`n"
+          $path = Join-Path $env:RUNNER_TEMP 'release-notes.md'
+          Set-Content -NoNewline -Path $path -Value $body
+          echo "path=$path" >> $env:GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.buildinfo.outputs.name }}
+          name: ${{ steps.buildinfo.outputs.name }}
+          body_path: ${{ steps.notes.outputs.path }}

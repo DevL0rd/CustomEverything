@@ -1,0 +1,89 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <Target Name="GenerateVersionInfo" BeforeTargets="CoreCompile">
+    <ReadLinesFromFile File="$(MSBuildThisFileDirectory)..\VERSION">
+      <Output TaskParameter="Lines" PropertyName="CustomEverythingVersion" />
+    </ReadLinesFromFile>
+    <PropertyGroup>
+      <CustomEverythingVersion Condition="'$(CustomEverythingVersion)' == ''">0.0.0</CustomEverythingVersion>
+      <VersionInfoContent>namespace CustomEverything.App { internal static class CustomEverythingVersionInfo { internal const string Version = "$(CustomEverythingVersion)"%3B } }</VersionInfoContent>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(IntermediateOutputPath)VersionInfo.g.cs" Overwrite="true" Lines="$(VersionInfoContent)" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)VersionInfo.g.cs" />
+    </ItemGroup>
+  </Target>
+
+  <PropertyGroup>
+    <ResonitePath>C:\Program Files (x86)\Steam\steamapps\common\Resonite</ResonitePath>
+    <LibPath>$(MSBuildThisFileDirectory)..\lib</LibPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.AutoPlugin" Version="2.1.0" PrivateAssets="all" />
+    <PackageReference Include="BepInEx.ResonitePluginInfoProps" Version="3.0.0" PrivateAssets="all" />
+    <PackageReference Include="ResoniteModding.BepisResoniteWrapper" Version="1.0.2" />
+    <PackageReference Include="Lib.Harmony" Version="2.3.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ResoniteGameReference Include="FrooxEngine">
+      <SourcePath>$(ResonitePath)\FrooxEngine.dll</SourcePath>
+      <HintPath>$(LibPath)\FrooxEngine.dll</HintPath>
+    </ResoniteGameReference>
+    <ResoniteGameReference Include="FrooxEngine.Store">
+      <SourcePath>$(ResonitePath)\FrooxEngine.Store.dll</SourcePath>
+      <HintPath>$(LibPath)\FrooxEngine.Store.dll</HintPath>
+    </ResoniteGameReference>
+    <ResoniteGameReference Include="Elements.Core">
+      <SourcePath>$(ResonitePath)\Elements.Core.dll</SourcePath>
+      <HintPath>$(LibPath)\Elements.Core.dll</HintPath>
+    </ResoniteGameReference>
+    <ResoniteGameReference Include="SkyFrost.Base">
+      <SourcePath>$(ResonitePath)\SkyFrost.Base.dll</SourcePath>
+      <HintPath>$(LibPath)\SkyFrost.Base.dll</HintPath>
+    </ResoniteGameReference>
+    <ResoniteGameReference Include="SkyFrost.Base.Models">
+      <SourcePath>$(ResonitePath)\SkyFrost.Base.Models.dll</SourcePath>
+      <HintPath>$(LibPath)\SkyFrost.Base.Models.dll</HintPath>
+    </ResoniteGameReference>
+    <Reference Include="FrooxEngine">
+      <HintPath>$(LibPath)\FrooxEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="FrooxEngine.Store">
+      <HintPath>$(LibPath)\FrooxEngine.Store.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Elements.Core">
+      <HintPath>$(LibPath)\Elements.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="SkyFrost.Base">
+      <HintPath>$(LibPath)\SkyFrost.Base.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="SkyFrost.Base.Models">
+      <HintPath>$(LibPath)\SkyFrost.Base.Models.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="RefreshLibFromResonite" BeforeTargets="ResolveAssemblyReferences" Condition="Exists('$(ResonitePath)')">
+    <ItemGroup>
+      <MissingResoniteGameReference Include="@(ResoniteGameReference)" Condition="!Exists('%(ResoniteGameReference.SourcePath)')" />
+    </ItemGroup>
+    <Error Condition="'@(MissingResoniteGameReference)' != ''" Text="[lib] Missing game reference DLL(s) in $(ResonitePath): @(MissingResoniteGameReference->'%(SourcePath)', ', ')" />
+    <MakeDir Directories="$(LibPath)" />
+    <Copy SourceFiles="@(ResoniteGameReference->'%(SourcePath)')" DestinationFiles="@(ResoniteGameReference->'%(HintPath)')" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>
