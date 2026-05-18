@@ -3,8 +3,7 @@ name: GitHub Release
 on:
   push:
     branches: [master]
-    paths:
-      - 'VERSION'
+  workflow_dispatch:
 
 jobs:
   release:
@@ -39,36 +38,21 @@ jobs:
           echo "tag=v$version" >> $env:GITHUB_OUTPUT
           echo "name=CustomEverything $version" >> $env:GITHUB_OUTPUT
 
-      - name: Check existing release
-        id: existing
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $ErrorActionPreference = 'Continue'
-          $tag = '${{ steps.version.outputs.tag }}'
-          gh release view $tag *> $null
-          if ($LASTEXITCODE -eq 0) {
-            echo "exists=true" >> $env:GITHUB_OUTPUT
-          } else {
-            echo "exists=false" >> $env:GITHUB_OUTPUT
-          }
-          exit 0
-
       - uses: actions/setup-dotnet@v4
-        if: steps.existing.outputs.exists != 'true'
         with:
           dotnet-version: '10.0.x'
           dotnet-quality: 'preview'
 
       - name: Build release DLL
-        if: steps.existing.outputs.exists != 'true'
         shell: pwsh
-        run: ./scripts/build.ps1 -NoDeploy
+        run: ./scripts/build.ps1 -Configuration Release -NoDeploy
+
+      - name: Build manual release package
+        shell: pwsh
+        run: ./scripts/package.ps1 -Configuration Release -Package Manual
 
       - name: Render release notes
         id: notes
-        if: steps.existing.outputs.exists != 'true'
         shell: pwsh
         run: |
           $version = '${{ steps.version.outputs.version }}'
@@ -78,18 +62,25 @@ jobs:
             "(?ms)^##\s+$([regex]::Escape($version))\b.*?(?=^##\s+|\z)"
           )
           $notes = if ($sectionMatch.Success) { $sectionMatch.Value.Trim() } else { $changelog.Trim() }
+          $readme = Get-Content -Raw README.md
+          $installMatch = [regex]::Match(
+            $readme,
+            '(?ms)^##\s+Install\s*(.*?)(?=^##\s+|\z)'
+          )
+          if (-not $installMatch.Success) {
+            throw "README.md Install section was not found"
+          }
+
+          $installNotes = "## Install`r`n`r`n" + $installMatch.Groups[1].Value.Trim()
           $body = @(
-            "Download CustomEverything from Thunderstore:"
-            "https://thunderstore.io/c/resonite/p/DevL0rd/CustomEverything/"
-            ""
+            $installNotes
             $notes
-          ) -join "`r`n"
+          ) -join "`r`n`r`n"
           $path = Join-Path $env:RUNNER_TEMP 'release-notes.md'
           Set-Content -NoNewline -Path $path -Value $body
           echo "path=$path" >> $env:GITHUB_OUTPUT
 
-      - name: Create Release
-        if: steps.existing.outputs.exists != 'true'
+      - name: Create or update release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
@@ -97,8 +88,5 @@ jobs:
           name: ${{ steps.version.outputs.name }}
           body_path: ${{ steps.notes.outputs.path }}
           make_latest: true
-
-      - name: Skip existing release
-        if: steps.existing.outputs.exists == 'true'
-        shell: pwsh
-        run: Write-Host "Release ${{ steps.version.outputs.tag }} already exists; skipping."
+          overwrite_files: true
+          files: CustomEverything-${{ steps.version.outputs.version }}.zip

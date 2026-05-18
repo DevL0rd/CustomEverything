@@ -5,7 +5,7 @@ schemaVersion = "0.0.1"
 namespace = "DevL0rd"
 name = "CustomEverything"
 versionNumber = "0.1.0"
-description = "Personal UI customization experiments for Resonite, starting with custom inspectors and ProtoFlux browsers."
+description = "Personal UI customization experiments for Resonite, including custom inspectors, ProtoFlux browsers, component pickers, and laser scrolling."
 websiteUrl = "https://github.com/DevL0rd/CustomEverything"
 containsNsfwContent = false
 

@@ -1,25 +1,45 @@
 # CustomEverything
 
-CustomEverything is a Resonite BepInEx mod for personal UI customization.
+CustomEverything is a Resonite BepInEx mod for personal UI customization experiments.
 
-It currently focuses on custom inspectors, custom ProtoFlux browsers, and custom component pickers. Save your preferred UI objects to inventory, choose them as active, and Resonite will open your saved layouts in place of the stock panels.
+
+## Install
+
+1. Follow the Resonite modding setup instructions for Gale and BepisLoader:
+https://modding.resonite.net/getting-started/installation/
+
+2. Search for CustomEverything and enable the mod.
+
+3. Launch Resonite with Gale.
+
+GitHub release zips are the bleeding-edge manual install path and may update faster than Thunderstore while packages wait for review.
+
 
 ## Features
 
-- Mark saved inspector panels as the active inspector layout.
-- Load the selected inspector layout when new inspectors are created.
-- Preserve the live hierarchy and component references from the stock inspector.
-- Mark saved ProtoFlux node browsers as the active browser layout.
-- Load the selected ProtoFlux browser when opening the node browser.
-- Mark saved component selectors as the active component picker.
-- Load the selected component picker when attaching components from an inspector.
+- Save an inspector panel to inventory, mark it as the active inspector, and new inspector panels will load from that saved object while keeping the live inspected target wired up.
+- Save a ProtoFlux node browser to inventory, mark it as the active browser, and opening the ProtoFlux node browser will load your saved layout instead of the stock browser.
+- Save a component selector to inventory, mark it as the active picker, and the inspector's attach component flow will open your saved picker.
 - Scroll laser-targeted UI panels with controller stick or touchpad input.
-- Store selected custom UI records in BepInEx config.
+- Keep custom UI selections stored in BepInEx config.
+- Toggle laser scrolling with the enabled-by-default `EnableLaserScrolling` setting.
+
 
 ## Credits
 
-CustomEverything builds on BepisLoader, BepisResoniteWrapper, Harmony, and custom UI ideas explored by art0007i's CustomInspectors/InspectorScroll/SpecialItemsLib and AlexW-578's CustomProtofluxBrowser projects.
+Special thanks to the projects and libraries CustomEverything builds on.
+
+| Project | What CustomEverything uses it for |
+| --- | --- |
+| [BepisLoader](https://thunderstore.io/c/resonite/p/ResoniteModding/BepisLoader/) | Game-side BepInEx loader |
+| [BepisResoniteWrapper](https://github.com/ResoniteModding/BepisResoniteWrapper) | Resonite BepInEx plugin support |
+| [Harmony](https://github.com/pardeike/Harmony) | Runtime patching |
+| [CustomInspectors](https://github.com/art0007i/CustomInspectors) | Inspiration for custom inspector workflows |
+| [InspectorScroll](https://github.com/art0007i/InspectorScroll) | Reference point for laser scrolling behavior |
+| [SpecialItemsLib](https://github.com/art0007i/SpecialItemsLib) | Inspiration for inventory-driven custom UI selection |
+| [CustomProtofluxBrowser](https://github.com/AlexW-578/CustomProtofluxBrowser) | Inspiration for custom ProtoFlux browser workflows |
+
 
 ## License
 
-AGPL-3.0 - see the included license file for details.
+AGPL-3.0 - see [LICENSE](LICENSE).

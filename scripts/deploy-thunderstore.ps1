@@ -72,12 +72,7 @@ function Test-ThunderstoreVersionExists {
 }
 
 function Invoke-TcliPublish {
-    param(
-        [Parameter(Mandatory)][string]$ZipPath,
-        [Parameter(Mandatory)][string]$Namespace,
-        [Parameter(Mandatory)][string]$PackageName,
-        [Parameter(Mandatory)][string]$PackageVersion
-    )
+    param([Parameter(Mandatory)][string]$ZipPath)
 
     if (-not (Test-Path -LiteralPath $ZipPath)) {
         throw "Package zip not found: $ZipPath"
@@ -88,7 +83,7 @@ function Invoke-TcliPublish {
         throw "TCLI_AUTH_TOKEN is empty. Add it as a repository secret, or attach the GitHub environment that contains it to this workflow job."
     }
 
-    $output = @(dotnet tcli publish --file $ZipPath --token $token --package-namespace $Namespace --package-name $PackageName --package-version $PackageVersion 2>&1)
+    $output = @(dotnet tcli publish --file $ZipPath --token $token 2>&1)
     $output | ForEach-Object { Write-Host $_ }
     if ($LASTEXITCODE -ne 0) {
         $joinedOutput = $output -join "`n"
@@ -128,13 +123,13 @@ try {
         return
     }
 
-    & (Join-Path $PSScriptRoot "package.ps1") -Configuration Release
+    & (Join-Path $PSScriptRoot "package.ps1") -Configuration Release -ThunderstoreFormat -Package Main
     if (-not (Test-Path -LiteralPath $zipPath)) {
         throw "Expected package zip was not created: $zipPath"
     }
 
     if ($Publish) {
-        Invoke-TcliPublish -ZipPath $zipPath -Namespace $namespace -PackageName $packageName -PackageVersion $version
+        Invoke-TcliPublish -ZipPath $zipPath
     }
     else {
         Write-Host "Built Thunderstore package: $zipPath"
