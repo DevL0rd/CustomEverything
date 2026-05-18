@@ -10,6 +10,8 @@ Current feature slices:
 
 - Custom inspectors: save an inspector panel to inventory, mark it as the active inspector, and new inspector panels will load from that saved object while keeping the live inspected target wired up.
 - Custom ProtoFlux browsers: save a ProtoFlux node browser to inventory, mark it as the active browser, and opening the ProtoFlux node browser will load your saved layout instead of the stock browser.
+- Custom component pickers: save a component selector to inventory, mark it as the active picker, and the inspector's attach component flow will open your saved picker.
+- Laser scrolling: scroll laser-targeted UI panels with controller stick or touchpad input. Enabled by default.
 
 ## Building
 

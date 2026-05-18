@@ -19,6 +19,19 @@ $ErrorActionPreference = "Stop"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $dotnetBuildArgs = @()
 
+function Get-TomlString {
+    param(
+        [Parameter(Mandatory)][string]$Content,
+        [Parameter(Mandatory)][string]$Name
+    )
+
+    $match = [regex]::Match($Content, "(?m)^\s*$([regex]::Escape($Name))\s*=\s*`"([^`"]*)`"\s*$")
+    if (-not $match.Success) {
+        throw "$Name was not found in thunderstore.toml"
+    }
+    return $match.Groups[1].Value
+}
+
 function Resolve-LocalProfilePath {
     param(
         [string]$RequestedProfilePath,
@@ -72,13 +85,28 @@ function Copy-CustomEverythingProfileDeploy {
     )
 
     $modOutDir = Get-CustomEverythingOutput -ConfigurationName $ConfigurationName
-    $pluginDir = Join-Path $ResolvedProfilePath "BepInEx\plugins\CustomEverything"
+    $toml = Get-Content -Raw -LiteralPath (Join-Path $Root "thunderstore.toml")
+    $namespace = Get-TomlString $toml "namespace"
+    $packageName = Get-TomlString $toml "name"
+    $pluginsRoot = Join-Path $ResolvedProfilePath "BepInEx\plugins"
+    $pluginDir = Join-Path $pluginsRoot "$namespace-$packageName\CustomEverything"
+    $oldPluginDir = Join-Path $pluginsRoot "CustomEverything"
     $pluginDll = Join-Path $modOutDir "CustomEverything.dll"
     if (-not (Test-Path -LiteralPath $pluginDll)) {
         throw "Required deploy input not found: $pluginDll"
     }
 
     Write-Host "Deploying CustomEverything to BepInEx profile: $ResolvedProfilePath"
+    if (Test-Path -LiteralPath $oldPluginDir) {
+        try {
+            Remove-Item -LiteralPath $oldPluginDir -Recurse -Force
+            Write-Host "Removed old CustomEverything deploy folder: $oldPluginDir"
+        }
+        catch {
+            Write-Warning "Could not remove old CustomEverything deploy folder '$oldPluginDir': $($_.Exception.Message)"
+        }
+    }
+
     New-Item -ItemType Directory -Force -Path $pluginDir | Out-Null
     Copy-Item -LiteralPath $pluginDll -Destination (Join-Path $pluginDir "CustomEverything.dll") -Force
 }

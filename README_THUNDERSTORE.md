@@ -2,7 +2,7 @@
 
 CustomEverything is a Resonite BepInEx mod for personal UI customization.
 
-It currently focuses on custom inspectors and custom ProtoFlux browsers. Save your preferred UI objects to inventory, choose them as active, and Resonite will open your saved layouts in place of the stock panels.
+It currently focuses on custom inspectors, custom ProtoFlux browsers, and custom component pickers. Save your preferred UI objects to inventory, choose them as active, and Resonite will open your saved layouts in place of the stock panels.
 
 ## Features
 
@@ -11,11 +11,14 @@ It currently focuses on custom inspectors and custom ProtoFlux browsers. Save yo
 - Preserve the live hierarchy and component references from the stock inspector.
 - Mark saved ProtoFlux node browsers as the active browser layout.
 - Load the selected ProtoFlux browser when opening the node browser.
+- Mark saved component selectors as the active component picker.
+- Load the selected component picker when attaching components from an inspector.
+- Scroll laser-targeted UI panels with controller stick or touchpad input.
 - Store selected custom UI records in BepInEx config.
 
 ## Credits
 
-CustomEverything builds on BepisLoader, BepisResoniteWrapper, Harmony, and custom UI ideas explored by art0007i's CustomInspectors/SpecialItemsLib and AlexW-578's CustomProtofluxBrowser projects.
+CustomEverything builds on BepisLoader, BepisResoniteWrapper, Harmony, and custom UI ideas explored by art0007i's CustomInspectors/InspectorScroll/SpecialItemsLib and AlexW-578's CustomProtofluxBrowser projects.
 
 ## License
 

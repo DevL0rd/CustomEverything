@@ -9,6 +9,7 @@ internal sealed class CustomEverythingConfig
     private readonly ConfigEntry<string> _inspectorUri;
     private readonly ConfigEntry<string> _protoFluxBrowserUri;
     private readonly ConfigEntry<string> _componentPickerUri;
+    private readonly ConfigEntry<bool> _enableLaserScrolling;
 
     internal CustomEverythingConfig(ConfigFile config)
     {
@@ -28,6 +29,11 @@ internal sealed class CustomEverythingConfig
             "PickerUri",
             string.Empty,
             "Selected custom component picker inventory URI.");
+        _enableLaserScrolling = config.Bind(
+            "Input",
+            "EnableLaserScrolling",
+            true,
+            "Scroll laser-targeted UI with controller stick or touchpad input.");
     }
 
     internal float InspectorScale => 0.0005f;
@@ -96,4 +102,6 @@ internal sealed class CustomEverythingConfig
         _componentPickerUri.Value = uri?.ToString() ?? string.Empty;
         _config.Save();
     }
+
+    internal bool EnableLaserScrolling => _enableLaserScrolling.Value;
 }

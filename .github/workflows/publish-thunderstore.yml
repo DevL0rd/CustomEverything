@@ -2,36 +2,52 @@ name: Publish Thunderstore
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches: [master]
+    paths:
+      - 'VERSION'
   workflow_dispatch:
 
 jobs:
   publish:
     runs-on: windows-latest
+    environment: main
     permissions:
       contents: read
-    env:
-      TCLI_AUTH_TOKEN: ${{ secrets.TCLI_AUTH_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check version file changes
+        id: version_changes
+        shell: pwsh
+        run: |
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+            echo "should_publish=true" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+
+          $before = '${{ github.event.before }}'
+          $after = '${{ github.sha }}'
+          $changed = @(git diff --name-only $before $after)
+          $versionChanged = $changed -contains 'VERSION'
+          echo "should_publish=$($versionChanged.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+
+          if (-not $versionChanged) {
+            Write-Host "VERSION did not change; skipping Thunderstore publish."
+          }
 
       - uses: actions/setup-dotnet@v4
+        if: steps.version_changes.outputs.should_publish == 'true'
         with:
           dotnet-version: '10.0.x'
           dotnet-quality: 'preview'
 
       - name: Publish to Thunderstore
+        if: steps.version_changes.outputs.should_publish == 'true'
         shell: pwsh
+        env:
+          TCLI_AUTH_TOKEN: ${{ secrets.TCLI_AUTH_TOKEN }}
         run: |
-          $expected = ""
-          if ($env:GITHUB_REF_TYPE -eq "tag") {
-            $expected = $env:GITHUB_REF_NAME
-          }
-
-          if ([string]::IsNullOrWhiteSpace($expected)) {
-            ./scripts/deploy-thunderstore.ps1 -Publish
-          } else {
-            ./scripts/deploy-thunderstore.ps1 -Publish -ExpectedVersion $expected
-          }
+          ./scripts/deploy-thunderstore.ps1 -Publish

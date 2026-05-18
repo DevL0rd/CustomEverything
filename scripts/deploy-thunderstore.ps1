@@ -36,9 +36,78 @@ function Import-DotEnv {
 
 Import-DotEnv $envPath
 
+function Get-TomlString {
+    param(
+        [Parameter(Mandatory)][string]$Content,
+        [Parameter(Mandatory)][string]$Name
+    )
+
+    $match = [regex]::Match($Content, "(?m)^\s*$([regex]::Escape($Name))\s*=\s*`"([^`"]*)`"\s*$")
+    if (-not $match.Success) {
+        throw "$Name was not found in thunderstore.toml"
+    }
+    return $match.Groups[1].Value
+}
+
+function Test-ThunderstoreVersionExists {
+    param(
+        [Parameter(Mandatory)][string]$Namespace,
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][string]$Version
+    )
+
+    $uri = "https://thunderstore.io/api/experimental/package/$Namespace/$Name/$Version/"
+    try {
+        Invoke-RestMethod -Uri $uri -Headers @{ Accept = "application/json" } | Out-Null
+        return $true
+    }
+    catch {
+        $statusCode = $_.Exception.Response.StatusCode.value__
+        if ($statusCode -eq 404) {
+            return $false
+        }
+
+        throw "Could not check Thunderstore package version $Namespace-$Name-$Version`: $($_.Exception.Message)"
+    }
+}
+
+function Invoke-TcliPublish {
+    param(
+        [Parameter(Mandatory)][string]$ZipPath,
+        [Parameter(Mandatory)][string]$Namespace,
+        [Parameter(Mandatory)][string]$PackageName,
+        [Parameter(Mandatory)][string]$PackageVersion
+    )
+
+    if (-not (Test-Path -LiteralPath $ZipPath)) {
+        throw "Package zip not found: $ZipPath"
+    }
+
+    $token = $env:TCLI_AUTH_TOKEN
+    if ([string]::IsNullOrWhiteSpace($token)) {
+        throw "TCLI_AUTH_TOKEN is empty. Add it as a repository secret, or attach the GitHub environment that contains it to this workflow job."
+    }
+
+    $output = @(dotnet tcli publish --file $ZipPath --token $token --package-namespace $Namespace --package-name $PackageName --package-version $PackageVersion 2>&1)
+    $output | ForEach-Object { Write-Host $_ }
+    if ($LASTEXITCODE -ne 0) {
+        $joinedOutput = $output -join "`n"
+        if ($joinedOutput -match "Package of the same namespace, name and version already exists") {
+            Write-Host "Skipping publish because this exact package version already exists on Thunderstore."
+            return
+        }
+
+        throw "Thunderstore publish failed: $ZipPath"
+    }
+}
+
 & (Join-Path $PSScriptRoot "sync-version.ps1") -Root $Root
 
 $version = (Get-Content -Raw -LiteralPath (Join-Path $Root "VERSION")).Trim()
+$toml = Get-Content -Raw -LiteralPath (Join-Path $Root "thunderstore.toml")
+$namespace = Get-TomlString $toml "namespace"
+$packageName = Get-TomlString $toml "name"
+
 if (-not [string]::IsNullOrWhiteSpace($ExpectedVersion)) {
     $normalizedExpected = $ExpectedVersion.Trim() -replace '^v', ''
     if ($version -ne $normalizedExpected) {
@@ -53,15 +122,22 @@ try {
         & (Join-Path $PSScriptRoot "build.ps1") -Configuration Release -NoDeploy
     }
 
-    if ($Publish) {
-        if ([string]::IsNullOrWhiteSpace($env:TCLI_AUTH_TOKEN)) {
-            throw "TCLI_AUTH_TOKEN is not set. Put it in a local .env file or GitHub Actions secret."
-        }
+    $zipPath = Join-Path $Root "build\$namespace-$packageName-$version.zip"
+    if ($Publish -and (Test-ThunderstoreVersionExists -Namespace $namespace -Name $packageName -Version $version)) {
+        Write-Host "Skipping $namespace-$packageName-$version; version already exists on Thunderstore."
+        return
+    }
 
-        dotnet tcli publish
+    & (Join-Path $PSScriptRoot "package.ps1") -Configuration Release
+    if (-not (Test-Path -LiteralPath $zipPath)) {
+        throw "Expected package zip was not created: $zipPath"
+    }
+
+    if ($Publish) {
+        Invoke-TcliPublish -ZipPath $zipPath -Namespace $namespace -PackageName $packageName -PackageVersion $version
     }
     else {
-        dotnet tcli build
+        Write-Host "Built Thunderstore package: $zipPath"
     }
 }
 finally {

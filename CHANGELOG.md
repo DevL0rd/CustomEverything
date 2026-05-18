@@ -10,3 +10,12 @@
 - Added custom ProtoFlux browser selection from saved inventory node browsers.
 - Added ProtoFlux node browser replacement when opening the ProtoFlux browser.
 - Added BepInEx config storage for the selected ProtoFlux browser URI.
+
+### Custom Component Picker Slice
+- Added custom component picker selection from saved inventory component selectors.
+- Added component picker replacement when attaching components from an inspector.
+- Added BepInEx config storage for the selected component picker URI.
+
+### Laser Scrolling Slice
+- Added laser scrolling for UI panels that accept axis scrolling.
+- Added an enabled-by-default `EnableLaserScrolling` setting.

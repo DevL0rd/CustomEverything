@@ -6,6 +6,8 @@ param(
 $ErrorActionPreference = "Stop"
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+& (Join-Path $PSScriptRoot "sync-version.ps1") -Root $Root
+
 $version = (Get-Content -Raw -LiteralPath (Join-Path $Root "VERSION")).Trim()
 $tomlPath = Join-Path $Root "thunderstore.toml"
 $toml = Get-Content -Raw -LiteralPath $tomlPath
@@ -39,13 +41,10 @@ function Get-TomlDependencies {
         }
     }
 
-    if ($dependencies.Count -eq 0) {
-        throw "No package dependencies were found in thunderstore.toml"
-    }
-
     return $dependencies.ToArray()
 }
 
+$namespace = Get-TomlString $toml "namespace"
 $packageName = Get-TomlString $toml "name"
 $websiteUrl = Get-TomlString $toml "websiteUrl"
 $description = Get-TomlString $toml "description"
@@ -66,21 +65,17 @@ if ($null -eq $modOutDir) {
 
 $modDll = Join-Path $modOutDir.FullName "CustomEverything.dll"
 if ([string]::IsNullOrWhiteSpace($ZipName)) {
-    $short = (& git -C $Root rev-parse --short HEAD 2>$null)
-    if ([string]::IsNullOrWhiteSpace($short)) {
-        $short = "unknown"
-    }
-
-    $timestamp = Get-Date -Format "yyyy.MM.dd_HH.mm.ss"
-    $ZipName = "CustomEverything-Alpha-${timestamp}_$short"
+    $ZipName = "$namespace-$packageName-$version"
 }
 
 $stage = Join-Path $env:TEMP "CustomEverythingPackage\$ZipName"
-$outZip = Join-Path $Root "$ZipName.zip"
+$outDir = Join-Path $Root "build"
+$outZip = Join-Path $outDir "$ZipName.zip"
 $readmeSource = Join-Path $Root "README_THUNDERSTORE.md"
 $changelogSource = Join-Path $Root "CHANGELOG.md"
+$iconSource = Join-Path $Root "icon.png"
 
-foreach ($path in @($modDll, $readmeSource, $changelogSource)) {
+foreach ($path in @($modDll, $readmeSource, $changelogSource, $iconSource)) {
     if (-not (Test-Path -LiteralPath $path)) {
         throw "Required package input not found: $path"
     }
@@ -93,6 +88,7 @@ if (Test-Path -LiteralPath $stage) {
     Remove-Item -LiteralPath $stage -Recurse -Force
 }
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
+New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
 $pluginDir = Join-Path $stage "plugins\CustomEverything"
 New-Item -ItemType Directory -Force -Path $pluginDir | Out-Null
@@ -100,6 +96,7 @@ New-Item -ItemType Directory -Force -Path $pluginDir | Out-Null
 Copy-Item -LiteralPath $modDll -Destination (Join-Path $pluginDir "CustomEverything.dll")
 Copy-Item -LiteralPath $readmeSource -Destination (Join-Path $stage "README.md")
 Copy-Item -LiteralPath $changelogSource -Destination (Join-Path $stage "CHANGELOG.md")
+Copy-Item -LiteralPath $iconSource -Destination (Join-Path $stage "icon.png")
 
 $manifest = [ordered]@{
     name = $packageName
@@ -133,5 +130,4 @@ finally {
 Remove-Item -LiteralPath $stage -Recurse -Force
 
 Write-Host ""
-Write-Host "Done:"
-Write-Host "  $ZipName.zip (Thunderstore package layout)"
+Write-Host "Done: $outZip (Thunderstore package layout)"

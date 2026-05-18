@@ -2,7 +2,7 @@
 schemaVersion = "0.0.1"
 
 [package]
-namespace = "DesktopBuddy"
+namespace = "DevL0rd"
 name = "CustomEverything"
 versionNumber = "0.1.0"
 description = "Personal UI customization experiments for Resonite, starting with custom inspectors and ProtoFlux browsers."
